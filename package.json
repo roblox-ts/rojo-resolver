@@ -38,6 +38,7 @@
 	"files": [
 		"out",
 		"CHANGELOG.md",
+		"rojo-schema.json",
 		"!**/*.js.map",
 		"!**/*.tsbuildinfo"
 	]
