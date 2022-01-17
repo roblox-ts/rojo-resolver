@@ -1,0 +1,41 @@
+{
+	"name": "@roblox-ts/rojo-resolver",
+	"version": "1.0.0",
+	"description": "RojoResolver for roblox-ts",
+	"main": "out/RojoResolver.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/roblox-ts/rojo-resolver.git"
+	},
+	"scripts": {
+		"prepublishOnly": "npm run build",
+		"build": "ttsc -b",
+		"build-watch": "ttsc -b -w",
+		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0"
+	},
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"ajv": "^8.6.3",
+		"fs-extra": "^10.0.0"
+	},
+	"devDependencies": {
+		"@types/fs-extra": "^9.0.13",
+		"@types/node": "^17.0.0",
+		"@typescript-eslint/eslint-plugin": "^5.0.0",
+		"@typescript-eslint/parser": "^5.0.0",
+		"eslint": "^8.0.1",
+		"eslint-config-prettier": "^8.3.0",
+		"eslint-plugin-prettier": "^4.0.0",
+		"eslint-plugin-simple-import-sort": "^7.0.0",
+		"prettier": "^2.4.1",
+		"ttypescript": "^1.5.12",
+		"typescript-transform-paths": "^3.3.1"
+	},
+	"files": [
+		"out",
+		"CHANGELOG.md",
+		"!**/*.js.map",
+		"!**/*.tsbuildinfo"
+	]
+}
