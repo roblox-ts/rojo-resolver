@@ -1,6 +1,6 @@
 {
 	"name": "@roblox-ts/rojo-resolver",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "RojoResolver for roblox-ts",
 	"main": "out/RojoResolver.js",
 	"repository": {
