@@ -20,7 +20,7 @@ interface RojoTreeProperty {
 
 interface RojoTreeMetadata {
 	$className?: string;
-	$path?: string;
+	$path?: string | { optional: string };
 	$properties?: Array<RojoTreeProperty>;
 	$ignoreUnknownInstances?: boolean;
 }
@@ -232,8 +232,8 @@ export class RojoResolver {
 	private parseTree(basePath: string, name: string, tree: RojoTree, doNotPush = false) {
 		if (!doNotPush) this.rbxPath.push(name);
 
-		if (tree.$path) {
-			this.parsePath(path.resolve(basePath, tree.$path));
+		if (tree.$path !== undefined) {
+			this.parsePath(path.resolve(basePath, typeof tree.$path === "string" ? tree.$path : tree.$path.optional));
 		}
 
 		if (tree.$className === "DataModel") {
