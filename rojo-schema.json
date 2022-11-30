@@ -20,7 +20,19 @@
 					"type": "boolean"
 				},
 				"$path": {
-					"type": "string"
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "object",
+							"properties": {
+								"optional": {
+									"type": "string"
+								}
+							}
+						}
+					]
 				},
 				"$properties": {
 					"type": "object"
