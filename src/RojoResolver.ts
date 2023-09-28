@@ -59,7 +59,6 @@ const SUB_EXT_TYPE_MAP = new Map<string, RbxType>([
 const DEFAULT_ISOLATED_CONTAINERS: Array<RbxPath> = [
 	["StarterPack"],
 	["StarterGui"],
-	["StarterPlayer"],
 	["StarterPlayer", "StarterPlayerScripts"],
 	["StarterPlayer", "StarterCharacterScripts"],
 	["StarterPlayer", "StarterCharacter"],
