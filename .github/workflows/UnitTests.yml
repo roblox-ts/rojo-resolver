@@ -11,10 +11,10 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout luau-ast repo
+      - name: Checkout rojo-resolver repo
         uses: actions/checkout@v4
         with:
-          path: luau-ast
+          path: rojo-resolver
 
       - name: Checkout roblox-ts repo
         uses: actions/checkout@v4
@@ -28,9 +28,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup luau-ast repo
+      - name: Setup rojo-resolver repo
         run: |
-          cd luau-ast
+          cd rojo-resolver
           npm install
           npm run build
 
@@ -39,7 +39,7 @@ jobs:
           cd roblox-ts
           foreman install
           npm install
-          npm install ../luau-ast
+          npm install ../rojo-resolver
           npm run update-test-types
 
       - name: Run Tests
