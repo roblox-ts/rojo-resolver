@@ -1,0 +1,47 @@
+name: UnitTests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout rojo-resolver repo
+        uses: actions/checkout@v4
+        with:
+          path: rojo-resolver
+
+      - name: Checkout roblox-ts repo
+        uses: actions/checkout@v4
+        with:
+          repository: roblox-ts/roblox-ts
+          path: roblox-ts
+
+      - name: Install Foreman
+        uses: Roblox/setup-foreman@v2.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup rojo-resolver repo
+        run: |
+          cd rojo-resolver
+          npm install
+          npm run build
+
+      - name: Setup roblox-ts repo
+        run: |
+          cd roblox-ts
+          foreman install
+          npm install
+          npm install ../rojo-resolver
+          npm run update-test-types
+
+      - name: Run Tests
+        run: |
+          cd roblox-ts
+          npm test
