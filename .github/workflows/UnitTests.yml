@@ -38,7 +38,7 @@ jobs:
           cd roblox-ts
           foreman install
           npm install
-          npm install ../rojo-resolver
+          npm install --install-links ../rojo-resolver
           npm run update-test-types
 
       - name: Run Tests
