@@ -62,6 +62,7 @@ const DEFAULT_ISOLATED_CONTAINERS: Array<RbxPath> = [
 	["StarterPlayer", "StarterPlayerScripts"],
 	["StarterPlayer", "StarterCharacterScripts"],
 	["StarterPlayer", "StarterCharacter"],
+	["PluginDebugService"],
 ];
 
 const CLIENT_CONTAINERS = [["StarterPack"], ["StarterGui"], ["StarterPlayer"]];
