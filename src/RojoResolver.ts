@@ -5,6 +5,7 @@ import path from "path";
 const PACKAGE_ROOT = path.join(__dirname, "..");
 
 const LUA_EXT = ".lua";
+const LUAU_EXT = ".luau";
 const JSON_EXT = ".json";
 
 const INIT_NAME = "init";
@@ -94,7 +95,7 @@ export enum NetworkType {
 
 function stripRojoExts(filePath: string) {
 	const ext = path.extname(filePath);
-	if (ext === LUA_EXT) {
+	if (ext === LUA_EXT || ext === LUAU_EXT) {
 		filePath = filePath.slice(0, -ext.length);
 		const subext = path.extname(filePath);
 		if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
@@ -249,7 +250,8 @@ export class RojoResolver {
 
 	private parsePath(itemPath: string) {
 		const realPath = fs.pathExistsSync(itemPath) ? fs.realpathSync(itemPath) : itemPath;
-		if (path.extname(itemPath) === LUA_EXT) {
+		const ext = path.extname(itemPath);
+		if (ext === LUA_EXT || ext === LUAU_EXT || ext === JSON_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
 			const isDirectory = fs.pathExistsSync(realPath) && fs.statSync(realPath).isDirectory();
