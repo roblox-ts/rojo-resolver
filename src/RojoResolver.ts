@@ -5,7 +5,12 @@ import path from "path";
 const PACKAGE_ROOT = path.join(__dirname, "..");
 
 const LUA_EXT = ".lua";
+const LUAU_EXT = ".luau";
 const JSON_EXT = ".json";
+const TOML_EXT = ".toml";
+
+const ROJO_MODULE_EXTS = new Set([LUAU_EXT, JSON_EXT, TOML_EXT]);
+const ROJO_SCRIPT_EXTS = new Set([LUAU_EXT]);
 
 const INIT_NAME = "init";
 
@@ -94,14 +99,14 @@ export enum NetworkType {
 
 function stripRojoExts(filePath: string) {
 	const ext = path.extname(filePath);
-	if (ext === LUA_EXT) {
+	if (ROJO_MODULE_EXTS.has(ext)) {
 		filePath = filePath.slice(0, -ext.length);
-		const subext = path.extname(filePath);
-		if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
-			filePath = filePath.slice(0, -subext.length);
+		if (ROJO_SCRIPT_EXTS.has(ext)) {
+			const subext = path.extname(filePath);
+			if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
+				filePath = filePath.slice(0, -subext.length);
+			}
 		}
-	} else if (ext === JSON_EXT) {
-		filePath = filePath.slice(0, -ext.length);
 	}
 	return filePath;
 }
@@ -144,6 +149,12 @@ const SCHEMA_PATH = path.join(PACKAGE_ROOT, "rojo-schema.json");
 const validateRojo = new Lazy(() => ajv.compile(JSON.parse(fs.readFileSync(SCHEMA_PATH).toString())));
 function isValidRojoConfig(value: unknown): value is RojoFile {
 	return validateRojo.get()(value) === true;
+}
+
+function convertToLuau(filePath: string) {
+	const ext = path.extname(filePath);
+	if (ext === LUA_EXT) return filePath.slice(0, -ext.length) + LUAU_EXT;
+	return filePath;
 }
 
 export const RbxPathParent = Symbol("Parent");
@@ -248,8 +259,10 @@ export class RojoResolver {
 	}
 
 	private parsePath(itemPath: string) {
+		itemPath = convertToLuau(itemPath);
 		const realPath = fs.pathExistsSync(itemPath) ? fs.realpathSync(itemPath) : itemPath;
-		if (path.extname(itemPath) === LUA_EXT) {
+		const ext = path.extname(itemPath);
+		if (ROJO_MODULE_EXTS.has(ext)) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
 			const isDirectory = fs.pathExistsSync(realPath) && fs.statSync(realPath).isDirectory();
@@ -302,16 +315,20 @@ export class RojoResolver {
 
 	public getRbxPathFromFilePath(filePath: string): RbxPath | undefined {
 		filePath = path.resolve(filePath);
+		filePath = convertToLuau(filePath);
+
 		const rbxPath = this.filePathToRbxPathMap.get(filePath);
 		if (rbxPath) {
 			return rbxPath;
 		}
+
+		const ext = path.extname(filePath);
 		for (const partition of this.partitions) {
 			if (isPathDescendantOf(filePath, partition.fsPath)) {
 				const stripped = stripRojoExts(filePath);
 				const relativePath = path.relative(partition.fsPath, stripped);
 				const relativeParts = relativePath === "" ? [] : relativePath.split(path.sep);
-				if (relativeParts[relativeParts.length - 1] === INIT_NAME) {
+				if (ROJO_SCRIPT_EXTS.has(ext) && relativeParts.at(-1) === INIT_NAME) {
 					relativeParts.pop();
 				}
 				return partition.rbxPath.concat(relativeParts);
@@ -320,8 +337,15 @@ export class RojoResolver {
 	}
 
 	public getRbxTypeFromFilePath(filePath: string): RbxType {
-		const subext = path.extname(path.basename(filePath, path.extname(filePath)));
-		return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
+		filePath = convertToLuau(filePath);
+		const ext = path.extname(filePath);
+		const subext = path.extname(path.basename(filePath, ext));
+		if (ROJO_SCRIPT_EXTS.has(ext)) {
+			return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
+		} else {
+			// non-script exts cannot use .server, .client, etc.
+			return RbxType.ModuleScript;
+		}
 	}
 
 	private getContainer(from: Array<RbxPath>, rbxPath?: RbxPath) {
