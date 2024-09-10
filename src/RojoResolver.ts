@@ -312,12 +312,14 @@ export class RojoResolver {
 		if (rbxPath) {
 			return rbxPath;
 		}
+
+		const ext = path.extname(filePath);
 		for (const partition of this.partitions) {
 			if (isPathDescendantOf(filePath, partition.fsPath)) {
 				const stripped = stripRojoExts(filePath);
 				const relativePath = path.relative(partition.fsPath, stripped);
 				const relativeParts = relativePath === "" ? [] : relativePath.split(path.sep);
-				if (relativeParts[relativeParts.length - 1] === INIT_NAME) {
+				if (ROJO_SCRIPT_EXTS.has(ext) && relativeParts.at(-1) === INIT_NAME) {
 					relativeParts.pop();
 				}
 				return partition.rbxPath.concat(relativeParts);
