@@ -7,6 +7,10 @@ const PACKAGE_ROOT = path.join(__dirname, "..");
 const LUA_EXT = ".lua";
 const LUAU_EXT = ".luau";
 const JSON_EXT = ".json";
+const TOML_EXT = ".toml";
+
+const ROJO_MODULE_EXTS = new Set([LUA_EXT, LUAU_EXT, JSON_EXT, TOML_EXT]);
+const ROJO_SCRIPT_EXTS = new Set([LUA_EXT, LUAU_EXT]);
 
 const INIT_NAME = "init";
 
@@ -95,14 +99,14 @@ export enum NetworkType {
 
 function stripRojoExts(filePath: string) {
 	const ext = path.extname(filePath);
-	if (ext === LUA_EXT || ext === LUAU_EXT) {
+	if (ROJO_MODULE_EXTS.has(ext)) {
 		filePath = filePath.slice(0, -ext.length);
-		const subext = path.extname(filePath);
-		if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
-			filePath = filePath.slice(0, -subext.length);
+		if (ROJO_SCRIPT_EXTS.has(ext)) {
+			const subext = path.extname(filePath);
+			if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
+				filePath = filePath.slice(0, -subext.length);
+			}
 		}
-	} else if (ext === JSON_EXT) {
-		filePath = filePath.slice(0, -ext.length);
 	}
 	return filePath;
 }
@@ -251,7 +255,7 @@ export class RojoResolver {
 	private parsePath(itemPath: string) {
 		const realPath = fs.pathExistsSync(itemPath) ? fs.realpathSync(itemPath) : itemPath;
 		const ext = path.extname(itemPath);
-		if (ext === LUA_EXT || ext === LUAU_EXT || ext === JSON_EXT) {
+		if (ROJO_MODULE_EXTS.has(ext)) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
 			const isDirectory = fs.pathExistsSync(realPath) && fs.statSync(realPath).isDirectory();
