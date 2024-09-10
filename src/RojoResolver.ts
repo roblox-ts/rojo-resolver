@@ -328,8 +328,14 @@ export class RojoResolver {
 	}
 
 	public getRbxTypeFromFilePath(filePath: string): RbxType {
-		const subext = path.extname(path.basename(filePath, path.extname(filePath)));
-		return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
+		const ext = path.extname(filePath);
+		const subext = path.extname(path.basename(filePath, ext));
+		if (ROJO_SCRIPT_EXTS.has(ext)) {
+			return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
+		} else {
+			// non-script exts cannot use .server, .client, etc.
+			return RbxType.ModuleScript;
+		}
 	}
 
 	private getContainer(from: Array<RbxPath>, rbxPath?: RbxPath) {
