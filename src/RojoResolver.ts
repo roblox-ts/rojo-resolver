@@ -1,5 +1,6 @@
 import Ajv from "ajv";
 import fs from "fs-extra";
+import { minimatch } from "minimatch";
 import path from "path";
 
 const PACKAGE_ROOT = path.join(__dirname, "..");
@@ -40,6 +41,7 @@ interface RojoFile {
 	servePort?: number;
 	name: string;
 	tree: RojoTree;
+	globIgnorePaths?: Array<string>;
 }
 
 const ajv = new Ajv();
@@ -79,9 +81,15 @@ const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
 export type RbxPath = ReadonlyArray<string>;
 export type RelativeRbxPath = ReadonlyArray<string | RbxPathParent>;
 
+interface RelativeGlob {
+	root: string;
+	glob: string;
+}
+
 interface PartitionInfo {
 	rbxPath: RbxPath;
 	fsPath: string;
+	ignorePaths: Array<RelativeGlob>;
 }
 
 export enum FileRelation {
@@ -123,6 +131,22 @@ function arrayStartsWith<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>) {
 
 function isPathDescendantOf(filePath: string, dirPath: string) {
 	return dirPath === filePath || !path.relative(dirPath, filePath).startsWith("..");
+}
+
+function rojoGlob(relativePath: string, glob: string): boolean {
+	// Rojo uses globset's GlobMatcher
+	// This tries to imitate its behavior as closely as possible
+
+	const relativeParts = relativePath === "" ? [] : relativePath.split(path.sep);
+
+	for (let i = 1; i <= relativeParts.length; i++) {
+		const slice = relativeParts.slice(0, i);
+		if (minimatch(path.join(...slice), glob)) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 class Lazy<T> {
@@ -230,7 +254,16 @@ export class RojoResolver {
 				configJson = JSON.parse(fs.readFileSync(realPath).toString());
 			} finally {
 				if (isValidRojoConfig(configJson)) {
-					this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree, doNotPush);
+					this.parseTree(
+						path.dirname(rojoConfigFilePath),
+						configJson.name,
+						configJson.tree,
+						doNotPush,
+						configJson.globIgnorePaths?.map(glob => ({
+							glob,
+							root: path.dirname(rojoConfigFilePath),
+						})),
+					);
 				} else {
 					this.warn(`RojoResolver: Invalid configuration! ${ajv.errorsText(validateRojo.get().errors)}`);
 				}
@@ -240,11 +273,20 @@ export class RojoResolver {
 		}
 	}
 
-	private parseTree(basePath: string, name: string, tree: RojoTree, doNotPush = false) {
+	private parseTree(
+		basePath: string,
+		name: string,
+		tree: RojoTree,
+		doNotPush = false,
+		ignorePaths?: Array<RelativeGlob>,
+	) {
 		if (!doNotPush) this.rbxPath.push(name);
 
 		if (tree.$path !== undefined) {
-			this.parsePath(path.resolve(basePath, typeof tree.$path === "string" ? tree.$path : tree.$path.optional));
+			this.parsePath(
+				path.resolve(basePath, typeof tree.$path === "string" ? tree.$path : tree.$path.optional),
+				ignorePaths,
+			);
 		}
 
 		if (tree.$className === "DataModel") {
@@ -258,11 +300,20 @@ export class RojoResolver {
 		if (!doNotPush) this.rbxPath.pop();
 	}
 
-	private parsePath(itemPath: string) {
+	private parsePath(itemPath: string, ignorePaths?: Array<RelativeGlob>) {
 		itemPath = convertToLuau(itemPath);
 		const realPath = fs.pathExistsSync(itemPath) ? fs.realpathSync(itemPath) : itemPath;
 		const ext = path.extname(itemPath);
-		if (ROJO_MODULE_EXTS.has(ext)) {
+
+		if (ignorePaths) {
+			for (const { root, glob } of ignorePaths) {
+				if (rojoGlob(path.relative(root, itemPath), glob)) return;
+			}
+		}
+
+		if (ROJO_FILE_REGEX.test(itemPath)) {
+			this.parseConfig(itemPath, true);
+		} else if (ROJO_MODULE_EXTS.has(ext)) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
 			const isDirectory = fs.pathExistsSync(realPath) && fs.statSync(realPath).isDirectory();
@@ -272,22 +323,29 @@ export class RojoResolver {
 				this.partitions.unshift({
 					fsPath: itemPath,
 					rbxPath: [...this.rbxPath],
+					ignorePaths: ignorePaths ?? [],
 				});
 
 				if (isDirectory) {
-					this.searchDirectory(itemPath);
+					this.searchDirectory(itemPath, undefined, ignorePaths);
 				}
 			}
 		}
 	}
 
-	private searchDirectory(directory: string, item?: string) {
+	private searchDirectory(directory: string, item?: string, ignorePaths?: Array<RelativeGlob>) {
 		const realPath = fs.realpathSync(directory);
 		const children = fs.readdirSync(realPath);
 
 		if (children.includes(ROJO_DEFAULT_NAME)) {
 			this.parseConfig(path.join(directory, ROJO_DEFAULT_NAME));
 			return;
+		}
+
+		if (ignorePaths) {
+			for (const { root, glob } of ignorePaths) {
+				if (rojoGlob(path.relative(root, directory), glob)) return;
+			}
 		}
 
 		if (item) this.rbxPath.push(item);
@@ -306,7 +364,7 @@ export class RojoResolver {
 			const childPath = path.join(directory, child);
 			const childRealPath = fs.realpathSync(childPath);
 			if (fs.statSync(childRealPath).isDirectory()) {
-				this.searchDirectory(childPath, child);
+				this.searchDirectory(childPath, child, ignorePaths);
 			}
 		}
 
@@ -325,6 +383,14 @@ export class RojoResolver {
 		const ext = path.extname(filePath);
 		for (const partition of this.partitions) {
 			if (isPathDescendantOf(filePath, partition.fsPath)) {
+				let matchesIgnoreGlob = false;
+				for (const { root, glob } of partition.ignorePaths) {
+					if (!rojoGlob(path.relative(root, filePath), glob)) continue;
+					matchesIgnoreGlob = true;
+					break;
+				}
+				if (matchesIgnoreGlob) continue;
+
 				const stripped = stripRojoExts(filePath);
 				const relativePath = path.relative(partition.fsPath, stripped);
 				const relativeParts = relativePath === "" ? [] : relativePath.split(path.sep);
