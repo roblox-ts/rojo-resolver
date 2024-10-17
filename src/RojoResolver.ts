@@ -38,7 +38,7 @@ interface RojoTreeMembers {
 
 interface RojoFile {
 	servePort?: number;
-	name: string;
+	name?: string;
 	tree: RojoTree;
 }
 
@@ -230,7 +230,9 @@ export class RojoResolver {
 				configJson = JSON.parse(fs.readFileSync(realPath).toString());
 			} finally {
 				if (isValidRojoConfig(configJson)) {
-					this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree, doNotPush);
+					const folderName = path.dirname(rojoConfigFilePath);
+					const name = configJson.name ?? folderName;
+					this.parseTree(folderName, name, configJson.tree, doNotPush);
 				} else {
 					this.warn(`RojoResolver: Invalid configuration! ${ajv.errorsText(validateRojo.get().errors)}`);
 				}
