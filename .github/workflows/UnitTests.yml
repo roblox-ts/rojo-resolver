@@ -31,7 +31,7 @@ jobs:
         run: |
           cd rojo-resolver
           npm install
-          npm run build
+          npm test
 
       - name: Setup roblox-ts repo
         run: |

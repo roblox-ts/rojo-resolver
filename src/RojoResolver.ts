@@ -341,7 +341,7 @@ export class RojoResolver {
 		const ext = path.extname(filePath);
 		const subext = path.extname(path.basename(filePath, ext));
 		if (ROJO_SCRIPT_EXTS.has(ext)) {
-			return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
+			return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.ModuleScript;
 		} else {
 			// non-script exts cannot use .server, .client, etc.
 			return RbxType.ModuleScript;
