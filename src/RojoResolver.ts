@@ -16,6 +16,7 @@ const INIT_NAME = "init";
 
 const SERVER_SUBEXT = ".server";
 const CLIENT_SUBEXT = ".client";
+const PLUGIN_SUBEXT = ".plugin";
 const MODULE_SUBEXT = "";
 
 interface RojoTreeProperty {
@@ -52,13 +53,13 @@ export enum RbxType {
 	ModuleScript,
 	Script,
 	LocalScript,
-	Unknown,
 }
 
 const SUB_EXT_TYPE_MAP = new Map<string, RbxType>([
 	[MODULE_SUBEXT, RbxType.ModuleScript],
 	[SERVER_SUBEXT, RbxType.Script],
 	[CLIENT_SUBEXT, RbxType.LocalScript],
+	[PLUGIN_SUBEXT, RbxType.Script],
 ]);
 
 const DEFAULT_ISOLATED_CONTAINERS: Array<RbxPath> = [
@@ -103,7 +104,7 @@ function stripRojoExts(filePath: string) {
 		filePath = filePath.slice(0, -ext.length);
 		if (ROJO_SCRIPT_EXTS.has(ext)) {
 			const subext = path.extname(filePath);
-			if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
+			if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT || subext === PLUGIN_SUBEXT) {
 				filePath = filePath.slice(0, -subext.length);
 			}
 		}
