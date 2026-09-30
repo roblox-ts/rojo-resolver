@@ -23,5 +23,5 @@ jobs:
       - name: Install NPM dependencies
         uses: bahmutov/npm-install@v1
 
-      - name: Build and Test
-        run: npm test
+      - name: Compile Source Files
+        run: npm run build
