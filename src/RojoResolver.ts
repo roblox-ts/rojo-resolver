@@ -224,8 +224,8 @@ export class RojoResolver {
 	public isGame = false;
 
 	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
-		const realPath = fs.realpathSync(rojoConfigFilePath);
-		if (fs.pathExistsSync(realPath)) {
+		if (fs.pathExistsSync(rojoConfigFilePath)) {
+			const realPath = fs.realpathSync(rojoConfigFilePath);
 			let configJson: unknown;
 			try {
 				configJson = JSON.parse(fs.readFileSync(realPath).toString());
@@ -261,6 +261,14 @@ export class RojoResolver {
 
 	private parsePath(itemPath: string) {
 		itemPath = convertToLuau(itemPath);
+		// a project file contributes its tree at the mount point, without adding its project name
+		if (ROJO_FILE_REGEX.test(path.basename(itemPath))) {
+			if (fs.pathExistsSync(itemPath)) {
+				this.parseConfig(itemPath, true);
+			}
+			return;
+		}
+
 		const realPath = fs.pathExistsSync(itemPath) ? fs.realpathSync(itemPath) : itemPath;
 		const ext = path.extname(itemPath);
 		if (ROJO_MODULE_EXTS.has(ext)) {
